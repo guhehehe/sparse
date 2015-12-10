@@ -6,7 +6,6 @@ import scala.util.{Failure, Success, Try}
 
 object Preamble {
   implicit def Str2Uri(s: String): URI = Try(new URI(s)) match {
-
     case Success(uri) => Option(uri.getScheme()) match {
       case Some(_) => uri
       case _ => throw new IllegalArgumentException(s"Failed to convert $s to URI: no scheme found.")

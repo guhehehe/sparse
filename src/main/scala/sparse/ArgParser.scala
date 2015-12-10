@@ -56,7 +56,6 @@ object ArgumentParser {
  * scala> args.camelCase
  * sparse.Value = 3
  * }}}
- *
  */
 class ArgumentParser private(
     private val positionalArguments: Vector[PositionalArgument],
@@ -79,18 +78,23 @@ class ArgumentParser private(
    * @param value the default value for this argument
    * @return a new [[ArgumentParser]] with this new argument added
    */
-  def addArg(name: String, flag: String = "", value: String = ""): ArgumentParser = {
+  def addArg(
+      name: String,
+      flag: String = "",
+      value: String = "",
+      options: Set[String] = Set.empty): ArgumentParser = {
+
     val parsedVal = Value.unapply(value)
     name match {
       case PositionalArgument(name) => {
         val position = positionalArguments.length
         new ArgumentParser(
-          positionalArguments :+ PositionalArgument(position, name),
+          positionalArguments :+ PositionalArgument(position, name, options = options),
           optionalArguments
         )
       }
       case OptionalArgument(name, isFlag) if !isFlag => {
-        val argObj = OptionalArgument(name, parsedVal)
+        val argObj = OptionalArgument(name, parsedVal, options = options)
         val updates: Map[String, OptionalArgument] = flag match {
           case "" => Map(name -> argObj)
           case OptionalArgument(flag, isFlag) if isFlag => {
@@ -124,10 +128,10 @@ class ArgumentParser private(
 
   /** Set value for optional arguments */
   private[this] def setVal(arg: OptionalArgument, value: String): ArgumentParser = {
-    val newKey = arg.setValue(value)
+    val newArg = arg.setValue(value)
     val updates: Map[String, OptionalArgument] = arg.flag match {
-      case Some(flag) => Map(arg.name -> newKey, flag -> newKey)
-      case None => Map(arg.name -> newKey)
+      case Some(flag) => Map(arg.name -> newArg, flag -> newArg)
+      case None => Map(arg.name -> newArg)
     }
     new ArgumentParser(positionalArguments, optionalArguments ++ updates)
   }
@@ -185,4 +189,19 @@ class ArgumentParser private(
     val p = parserHelper(arguments.toList)
     p.optionalArguments.values.foldLeft(p.positionalArguments.foldLeft(args)(foldFunc))(foldFunc)
   }
+}
+
+object Main extends App {
+
+  override val args = Array("--optional", "o2", "-f", "http://api.api.com", "2.3")
+
+  val arguments = ArgumentParser()
+      .addArg("--flag", "-f", "false")
+      .addArg("--optional", options = Set("o1", "o2", "o3"))
+      .addArg("uri")
+      .addArg("double")
+      .parse(args)
+
+  println(arguments.optional)
+
 }
