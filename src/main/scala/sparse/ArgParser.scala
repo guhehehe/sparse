@@ -4,9 +4,8 @@ import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-
-object ArgumentParser {
-  def apply() = new ArgumentParser()
+object Sparser {
+  def apply() = new Sparser()
 }
 
 /**
@@ -57,13 +56,26 @@ object ArgumentParser {
  * sparse.Value = 3
  * }}}
  */
-class ArgumentParser private(
-    private val positionalArguments: Vector[PositionalArgument],
-    private val optionalArguments: Map[String, OptionalArgument]) {
+class Sparser private(
+    val title: String,
+    val desc: String,
+    private val posArgs: Vector[PositionalArg],
+    private val optArgs: Map[String, OptionalArg],
+    private val canonicalName: Map[String, String]) {
 
-  def this() = this(Vector.empty[PositionalArgument], Map.empty[String, OptionalArgument])
+  def this(title: String = "", desc: String = "") = {
+    this(title, desc, Vector.empty, Map.empty, Map.empty)
+  }
 
-  // TODO: choose from (options)
+  private[sparse] def update(
+      title: String = this.title,
+      desc: String = this.desc,
+      posArgs: Vector[PositionalArg] = this.posArgs,
+      optArgs: Map[String, OptionalArg] = this.optArgs,
+      canonicalName: Map[String, String] = this.canonicalName): Sparser = {
+    new Sparser(title, desc, posArgs, optArgs, canonicalName)
+  }
+
   /**
    * Add a new argument to the parser.
    *
@@ -76,132 +88,125 @@ class ArgumentParser private(
    * @param name the name of this argument
    * @param flag the shorthand representation of this argument
    * @param value the default value for this argument
-   * @return a new [[ArgumentParser]] with this new argument added
+   * @param options the options that the $value can be chosen from
+   * @return a new [[Sparser]] with this new argument added
    */
   def addArg(
       name: String,
       flag: String = "",
       value: String = "",
-      options: Set[String] = Set.empty): ArgumentParser = {
+      options: Set[String] = Set.empty,
+      desc: String = ""): Sparser = {
 
-    val parsedVal = Value.unapply(value)
+    val parsedVal = Value.unapply(value).getOrElse("")
     name match {
-      case PositionalArgument(name) => {
-        val position = positionalArguments.length
-        new ArgumentParser(
-          positionalArguments :+ PositionalArgument(position, name, options = options),
-          optionalArguments
-        )
+      case PositionalArg(name) => {
+        val position = posArgs.length
+        val argObj = PositionalArg(position, name, options = options, desc = desc)
+        update(posArgs = posArgs :+ argObj)
       }
-      case OptionalArgument(name, isFlag) if !isFlag => {
-        val argObj = OptionalArgument(name, parsedVal, options = options)
-        val updates: Map[String, OptionalArgument] = flag match {
-          case "" => Map(name -> argObj)
-          case OptionalArgument(flag, isFlag) if isFlag => {
-            val newArgObj = argObj.setFlag(flag)
-            Map(name -> newArgObj, flag -> newArgObj)
-          }
-          case unknown => throw new IllegalArgumentException(
-            s"Can't handle flag: $unknown, make sure flag argument is prefixed by a single '-'."
-          )
+      case arg@OptionalArg(name, isFlag) if !isFlag => {
+        val argObj = OptionalArg(name, parsedVal, options = options).setFlag(flag)
+        val newCname = if (!argObj.flag.isEmpty) {
+          canonicalName + (flag -> arg)
+        } else {
+          canonicalName
         }
-        new ArgumentParser(positionalArguments, optionalArguments ++ updates)
+        update(optArgs = optArgs + (arg -> argObj), canonicalName = newCname)
       }
       case unknown => throw new IllegalArgumentException(s"Can't handle argument: $unknown.")
     }
   }
 
-  private[this] def errorExit(message: String): ArgumentParser = {
-    System.err.println(message)
-    System.exit(1)
-    this
-  }
-
-  /** Set value for positional arguments */
-  private[this] def setVal(position: Int, value: String): ArgumentParser = {
-    val arg = positionalArguments(position)
-    new ArgumentParser(
-      positionalArguments.updated(position, arg.setValue(value)),
-      optionalArguments
-    )
-  }
-
-  /** Set value for optional arguments */
-  private[this] def setVal(arg: OptionalArgument, value: String): ArgumentParser = {
-    val newArg = arg.setValue(value)
-    val updates: Map[String, OptionalArgument] = arg.flag match {
-      case Some(flag) => Map(arg.name -> newArg, flag -> newArg)
-      case None => Map(arg.name -> newArg)
-    }
-    new ArgumentParser(positionalArguments, optionalArguments ++ updates)
-  }
-
-
-  @tailrec
-  private final def parserHelper(
-      args: List[String],
-      lastPosition: Int = -1,
-      cutoff: Boolean = false): ArgumentParser = {
-
-    if (args.length > 0 & lastPosition >= positionalArguments.length) {
-      errorExit(s"Too many positional arguments.")
-    }
-    args match {
-      // deal with positional arguments
-      case Value(value) :: etc => {
-        val newPosition = lastPosition + 1
-        setVal(newPosition, value).parserHelper(etc, newPosition, true)
-      }
-      // deal with optional arguments
-      case OptionalArgument(arg, _) :: Value(value) :: etc if !cutoff => {
-        Try(optionalArguments(arg)) match {
-          case Success(argObj) => argObj.isSwitch match {
-            // switch argument's value is preset, so skip it
-            case true => parserHelper(args.drop(1), lastPosition)
-            // deal with other optional arguments, which fall into the following cases:
-            //   prog -f value
-            //   prog --arg value
-            case false => setVal(argObj, value).parserHelper(etc, lastPosition)
-          }
-          case Failure(e: NoSuchElementException) => {
-            errorExit(s"Unknown optional argument: ${args.head}.")
-          }
-          case Failure(NonFatal(e)) => throw e
-        }
-      }
-      case Nil => {
-        if (lastPosition != positionalArguments.length - 1) {
-          errorExit(s"Too few positional arguments.")
-        }
-        this
-      }
-      case _ => errorExit(s"Illegal argument: ${args.head}.")
-    }
-  }
-
-  private[this] def foldFunc(args: Arguments, arg: Argument): Arguments = arg.value match {
-    case Some(value) => args.set(arg.name, value)
-    case _ => args
-  }
-
   def parse(arguments: Array[String]): Arguments = {
     val args = new Arguments()
     val p = parserHelper(arguments.toList)
-    p.optionalArguments.values.foldLeft(p.positionalArguments.foldLeft(args)(foldFunc))(foldFunc)
+    p.optArgs.values.foldLeft(p.posArgs.foldLeft(args)(foldFunc))(foldFunc)
+  }
+
+  private[this] def foldFunc(args: Arguments, arg: Argument): Arguments = {
+    args.set(arg.name, arg)
+  }
+
+  /** Set value for positional arguments */
+  private[this] def setVal(position: Int, value: String): Sparser = {
+    if (position >= posArgs.length) {
+      errorExit(s"Too many positional arguments.")
+    }
+    val arg = posArgs(position)
+    update(posArgs = posArgs.updated(position, arg.setValue(value)))
+  }
+
+  /** Set value for optional arguments */
+  private[this] def setVal(arg: OptionalArg, value: String): Sparser = {
+    val newArg = arg.setValue(value)
+    update(optArgs = optArgs + (arg.name -> newArg))
+  }
+
+  @tailrec
+  private[sparse] final def parserHelper(
+      args: List[String],
+      lastPosition: Int = -1,
+      cutoff: Boolean = false): Sparser = args match {
+    // deal with positional arguments
+    case Value(value) :: etc => {
+      val newPosition = lastPosition + 1
+      setVal(newPosition, value).parserHelper(etc, newPosition, true)
+    }
+    // deal with optional arguments
+    case OptionalArg(arg, _) :: Value(value) :: etc if !cutoff => {
+      val cname = canonicalName.get(args.head) match {
+        case Some(name) => name
+        case _ => args.head
+      }
+      Try(optArgs(cname)) match {
+        case Success(argObj) => argObj.isSwitch match {
+          // negate the default value
+          case true => {
+            val switchOn = (!argObj.value.toBoolean).toString
+            setVal(argObj, switchOn).parserHelper(args.drop(1), lastPosition)
+          }
+          case false => setVal(argObj, value).parserHelper(etc, lastPosition)
+        }
+        case Failure(e: NoSuchElementException) => {
+          errorExit(s"Unknown optional argument: ${args.head}.")
+        }
+        case Failure(NonFatal(e)) => throw e
+      }
+    }
+    case Nil => {
+      if (lastPosition != posArgs.length - 1) {
+        errorExit(s"Too few positional arguments.")
+      }
+      this
+    }
+    case _ => errorExit(s"Illegal argument: ${args.head}.")
+  }
+
+  private[this] def errorExit(message: String): Sparser = {
+    System.err.println(message)
+    System.exit(1)
+    this
   }
 }
 
 object Main extends App {
 
-  override val args = Array("--optional", "o2", "-f", "http://api.api.com", "2.3")
+  override val args: Array[String] = Array(
+    "--optional-arg",
+    "o2",
+    "-f",
+    "http://api.api.com",
+    "2.3"
+  )
 
-  val arguments = ArgumentParser()
-      .addArg("--flag", "-f", "false")
-      .addArg("--optional", options = Set("o1", "o2", "o3"))
+  val arguments = Sparser()
+      .addArg("--flag", "-f", "false", desc = "abc")
+      .addArg("--optional-arg", options = Set("o1", "o2", "o3"))
       .addArg("uri")
       .addArg("double")
       .parse(args)
 
-  println(arguments.optional)
+  println(arguments)
 
 }

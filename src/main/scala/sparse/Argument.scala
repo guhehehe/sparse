@@ -2,55 +2,56 @@ package sparse
 
 import scala.util.{Success, Try}
 
-object Value {
+private[sparse] object Value {
   def unapply(v: String): Option[String] = Option(v).flatMap {
-    case v if v.length() > 0 & !v.startsWith("-") => Some(v)
+    case v if !v.isEmpty & !v.startsWith("-") => Some(v)
     case _ => None
   }
 }
 
-sealed abstract class Argument(
+sealed private[sparse] abstract class Argument(
     val name: String,
-    val value: Option[String] = None,
+    val value: String = "",
     val options: Set[String] = Set.empty,
-    val desc: Option[String] = None) {
+    val desc: String = "") {
 
-  value.foreach {
-    case v if options.isEmpty | options(v) =>
-    case v => {
-      val optStr = options.map(s => s""""$s"""").mkString(", ")
-      System.err.println( s"""`$name` must be chosen from {$optStr}, got "${value.orNull}"""")
-      System.exit(1)
-    }
+  // check if $value is in $options
+  if (!options.isEmpty & !value.isEmpty & !options(value)) {
+    val optStr = options.map(s => s""""$s"""").mkString(", ")
+    System.err.println( s"""`$name` must be chosen from {$optStr}, got "$value"""")
+    System.exit(1)
   }
 
   def setValue(newValue: String): Argument
 }
 
-object PositionalArgument {
+private[sparse] object PositionalArg {
   def apply(
       index: Int,
       name: String,
-      value: Option[String] = None,
+      value: String = "",
       options: Set[String] = Set.empty,
-      desc: Option[String] = None): PositionalArgument = {
-
-    new PositionalArgument(index, name, value, options, desc)
+      desc: String = ""): PositionalArg = {
+    new PositionalArg(index, name, value, options, desc)
   }
 
   def unapply(k: String): Option[String] = {
-    Option(k).filter(k => k.length() > 0 & !k.startsWith("-"))
+    if (!k.isEmpty & !k.startsWith("-")) {
+      Some(k)
+    } else {
+      None
+    }
   }
 }
 
-object OptionalArgument {
+private[sparse] object OptionalArg {
   def apply(
       name: String,
-      value: Option[String] = None,
-      flag: Option[String] = None,
+      value: String = "",
+      flag: String = "",
       options: Set[String] = Set.empty,
-      desc: Option[String] = None): OptionalArgument = {
-    new OptionalArgument(name, value, flag, options, desc)
+      desc: String = ""): OptionalArg = {
+    new OptionalArg(name, value, flag, options, desc)
   }
 
   def unapply(k: String): Option[(String, Boolean)] = Option(k).flatMap {
@@ -60,44 +61,67 @@ object OptionalArgument {
   }
 }
 
-class PositionalArgument(
+private[sparse] class PositionalArg(
     val index: Int,
     name: String,
-    value: Option[String] = None,
+    value: String = "",
     options: Set[String] = Set.empty,
-    desc: Option[String] = None) extends Argument(name, value, options, desc) {
+    desc: String = "") extends Argument(name, value, options, desc) {
 
-  override def setValue(newValue: String) = {
-    PositionalArgument(index, name, Option(newValue), options, desc)
+  override def setValue(value: String) = {
+    if (value != this.value) {
+      PositionalArg(index, name, value, options, desc)
+    } else {
+      this
+    }
   }
 
-  override def toString = s"PositionalArgument(index=$index, " +
-      s"name=$name, value=${value.getOrElse("NULL")})"
+  override def toString = s"PositionalArgument(index=$index, name=$name, value=$value, " +
+      s"options=$options, desc=$desc)"
 }
 
-class OptionalArgument(
+private[sparse] class OptionalArg(
     name: String,
-    value: Option[String] = None,
-    val flag: Option[String] = None,
+    value: String = "",
+    val flag: String = "",
     options: Set[String] = Set.empty,
-    desc: Option[String] = None) extends Argument(name, value, options, desc) {
+    desc: String = "") extends Argument(name, value, options, desc) {
 
-  def isSwitch = value match {
-    case Some(v) => Try(v.toBoolean) match {
-      case Success(_) => true
-      case _ => false
-    }
+  private[this] def update(
+      name: String = this.name,
+      value: String = this.value,
+      flag: String = this.flag,
+      options: Set[String] = this.options,
+      desc: String = this.desc): OptionalArg = {
+    OptionalArg(name, value, flag, options, desc)
+  }
+
+  def isSwitch = Try(value.toBoolean) match {
+    case Success(_) => true
     case _ => false
   }
 
   def setFlag(flag: String) = {
-    OptionalArgument(name, value, if (flag.length() > 0) Option(flag) else None, options, desc)
+    if (!flag.isEmpty) {
+      flag match {
+        case OptionalArg(_, isFlag) if flag.isEmpty | isFlag => update(flag = flag.stripPrefix("-"))
+        case unknown => throw new IllegalArgumentException(
+          s"Can't handle flag: $unknown, make sure flag argument is prefixed by a single '-'."
+        )
+      }
+    } else {
+      this
+    }
   }
 
-  override def setValue(newValue: String) = {
-    OptionalArgument(name, Option(newValue), flag, options, desc)
+  override def setValue(value: String) = {
+    if (value != this.value) {
+      update(value = value)
+    } else {
+      this
+    }
   }
 
-  override def toString = s"PositionalArgument(name=$name, " +
-      s"value=${value.getOrElse("NULL")}, flag=${flag.getOrElse("NULL")})"
+  override def toString = s"PositionalArgument(name=$name, value=$value, flag=$flag " +
+      s"options=$options, desc=$desc)"
 }
