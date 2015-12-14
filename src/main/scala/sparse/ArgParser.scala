@@ -5,7 +5,10 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 object Sparser {
-  def apply() = new Sparser()
+  def apply(progName: String = "prog", desc: String = "") = {
+    val help = new OptionalArg("help", "false", "h", desc = "print this help message")
+    new Sparser(progName, desc, Vector.empty, Map("--help" -> help), Map("-h" -> "--help"))
+  }
 }
 
 /**
@@ -57,23 +60,19 @@ object Sparser {
  * }}}
  */
 class Sparser private(
-    val title: String,
+    val progName: String,
     val desc: String,
     private val posArgs: Vector[PositionalArg],
     private val optArgs: Map[String, OptionalArg],
     private val canonicalName: Map[String, String]) {
 
-  def this(title: String = "", desc: String = "") = {
-    this(title, desc, Vector.empty, Map.empty, Map.empty)
-  }
-
   private[sparse] def update(
-      title: String = this.title,
+      progName: String = this.progName,
       desc: String = this.desc,
       posArgs: Vector[PositionalArg] = this.posArgs,
       optArgs: Map[String, OptionalArg] = this.optArgs,
       canonicalName: Map[String, String] = this.canonicalName): Sparser = {
-    new Sparser(title, desc, posArgs, optArgs, canonicalName)
+    new Sparser(progName, desc, posArgs, optArgs, canonicalName)
   }
 
   /**
@@ -102,11 +101,11 @@ class Sparser private(
     name match {
       case PositionalArg(name) => {
         val position = posArgs.length
-        val argObj = PositionalArg(position, name, options = options, desc = desc)
+        val argObj = new PositionalArg(position, name, options = options, desc = desc)
         update(posArgs = posArgs :+ argObj)
       }
       case arg@OptionalArg(name, isFlag) if !isFlag => {
-        val argObj = OptionalArg(name, parsedVal, options = options).setFlag(flag)
+        val argObj = new OptionalArg(name, parsedVal, options = options, desc = desc).setFlag(flag)
         val newCname = if (!argObj.flag.isEmpty) {
           canonicalName + (flag -> arg)
         } else {
@@ -131,7 +130,7 @@ class Sparser private(
   /** Set value for positional arguments */
   private[this] def setVal(position: Int, value: String): Sparser = {
     if (position >= posArgs.length) {
-      exit(s"Too many positional arguments.")
+      errExit(s"Too many positional arguments.")
     }
     val arg = posArgs(position)
     update(posArgs = posArgs.updated(position, arg.setValue(value)))
@@ -159,6 +158,9 @@ class Sparser private(
         case Some(name) => name
         case _ => args.head
       }
+      if (cname == "--help") {
+        printHelp()
+      }
       Try(optArgs(cname)) match {
         case Success(argObj) => argObj.isSwitch match {
           // negate the default value
@@ -166,50 +168,55 @@ class Sparser private(
             val switchOn = (!argObj.value.toBoolean).toString
             setVal(argObj, switchOn).parserHelper(etc, lastPosition)
           }
-          case false if !etc.isEmpty => {
+          case false if !etc.isEmpty & !Value.unapply(etc.head).isEmpty => {
             setVal(argObj, etc.head).parserHelper(etc.drop(1), lastPosition)
           }
-          case _ => exit(s"Missing value for optional argument ${args.head}")
+          case _ => errExit(s"Missing value for optional argument ${args.head}")
         }
         case Failure(e: NoSuchElementException) => {
-          exit(s"Unknown optional argument: ${args.head}.")
+          errExit(s"Unknown optional argument: ${args.head}.")
         }
         case Failure(NonFatal(e)) => throw e
       }
     }
     case Nil => {
       if (lastPosition != posArgs.length - 1) {
-        exit(s"Too few positional arguments.")
+        errExit(s"Too few positional arguments.")
       }
       this
     }
-    case _ => exit(s"Illegal argument: ${args.head}.")
+    case _ => errExit(s"Illegal argument: ${args.head}.")
   }
 
-  private[this] def exit(message: String, code: Int = 1): Sparser = {
-    System.err.println(message)
-    System.exit(code)
+  private[this] def errExit(message: String): Sparser = {
+    if (!message.isEmpty) {
+      System.err.println(message)
+    }
+    System.exit(1)
     this
+  }
+
+  private[this] def printHelp() = {
+    val formatter = new Formatter(progName, desc, posArgs, optArgs.values)
+    println(formatter.getHelp)
+    System.exit(0)
   }
 }
 
 object Main extends App {
-
   override val args: Array[String] = Array(
+    "--help",
     "--optional-arg",
     "o2",
     "-f",
     "http://api.api.com",
     "2.3"
   )
-
-  val arguments = Sparser()
+  val arguments = Sparser("test-prog", "A test program")
+      .addArg("--haha", desc = "no val opt arg")
       .addArg("--flag", "-f", "false", desc = "abc")
-      .addArg("--optional-arg", options = Set("o1", "o2", "o3"))
-      .addArg("uri")
-      .addArg("double")
+      .addArg("--optional-arg", options = Set("o1", "o2", "o3"), desc = "opt arg Im trying my best to make this line over 79 chars")
+      .addArg("uri", desc = "uri")
+      .addArg("double", desc = "doulbe")
       .parse(args)
-
-  println(arguments)
-
 }

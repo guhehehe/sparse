@@ -13,7 +13,8 @@ sealed private[sparse] abstract class Argument(
     val name: String,
     val value: String = "",
     val options: Set[String] = Set.empty,
-    val desc: String = "") {
+    val desc: String = "",
+    val valFormat: String = "") {
 
   // check if $value is in $options
   if (!options.isEmpty & !value.isEmpty & !options(value)) {
@@ -26,15 +27,6 @@ sealed private[sparse] abstract class Argument(
 }
 
 private[sparse] object PositionalArg {
-  def apply(
-      index: Int,
-      name: String,
-      value: String = "",
-      options: Set[String] = Set.empty,
-      desc: String = ""): PositionalArg = {
-    new PositionalArg(index, name, value, options, desc)
-  }
-
   def unapply(k: String): Option[String] = {
     if (!k.isEmpty & !k.startsWith("-")) {
       Some(k)
@@ -45,15 +37,6 @@ private[sparse] object PositionalArg {
 }
 
 private[sparse] object OptionalArg {
-  def apply(
-      name: String,
-      value: String = "",
-      flag: String = "",
-      options: Set[String] = Set.empty,
-      desc: String = ""): OptionalArg = {
-    new OptionalArg(name, value, flag, options, desc)
-  }
-
   def unapply(k: String): Option[(String, Boolean)] = Option(k).flatMap {
     case k if k.startsWith("--") => Some((k.stripPrefix("--"), false))
     case k if k.startsWith("-") => Some((k.stripPrefix("-"), true))
@@ -66,11 +49,12 @@ private[sparse] class PositionalArg(
     name: String,
     value: String = "",
     options: Set[String] = Set.empty,
-    desc: String = "") extends Argument(name, value, options, desc) {
+    desc: String = "",
+    valFormat: String = "") extends Argument(name, value, options, desc, valFormat) {
 
   override def setValue(value: String) = {
     if (value != this.value) {
-      PositionalArg(index, name, value, options, desc)
+      new PositionalArg(index, name, value, options, desc)
     } else {
       this
     }
@@ -85,15 +69,17 @@ private[sparse] class OptionalArg(
     value: String = "",
     val flag: String = "",
     options: Set[String] = Set.empty,
-    desc: String = "") extends Argument(name, value, options, desc) {
+    desc: String = "",
+    valFormat: String = "") extends Argument(name, value, options, desc, valFormat) {
 
   private[this] def update(
       name: String = this.name,
       value: String = this.value,
       flag: String = this.flag,
       options: Set[String] = this.options,
-      desc: String = this.desc): OptionalArg = {
-    OptionalArg(name, value, flag, options, desc)
+      desc: String = this.desc,
+      valFormat: String = this.valFormat): OptionalArg = {
+    new OptionalArg(name, value, flag, options, desc, valFormat)
   }
 
   def isSwitch = Try(value.toBoolean) match {
