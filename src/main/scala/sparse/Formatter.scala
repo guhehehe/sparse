@@ -7,8 +7,8 @@ class Formatter(
     val optArgs: Iterable[OptionalArg]) {
 
   val defaultValueFmt = "<value>"
-  val defaultPrecedingIndent = 2
-  val defaultDescIndent = 8
+  val defaultPrecedingIndent = " " * 2
+  val defaultDescIndent = " " * 8
   val defaultMaxCol = 79
 
   private[this] def generateOptArgFmt(arg: OptionalArg) = {
@@ -40,7 +40,7 @@ class Formatter(
 
   def posArgsUsage = {
     val str = getNonEmptyArgs(posArgs).map { arg =>
-      s"${" " * defaultPrecedingIndent}${arg.name}: ${arg.desc}"
+      s"$defaultPrecedingIndent${arg.name}: ${arg.desc}"
     }.mkString("\n")
     if (!str.isEmpty) s"\nPositional arguments:\n$str\n" else ""
   }
@@ -51,10 +51,10 @@ class Formatter(
       val preceding = s"${generateOptArgFmt(arg)}:$defaultVal"
       val desc = arg.desc
       val wrap = if (preceding.length + desc.length > defaultMaxCol) {
-        s"\n${" " * defaultDescIndent}"
+        s"\n$defaultDescIndent"
       } else ""
 
-      s"${" " * defaultPrecedingIndent}$preceding$wrap$desc"
+      s"$defaultPrecedingIndent$preceding$wrap$desc"
     }.mkString("\n")
     if (!str.isEmpty) s"\nOptional arguments:\n$str\n" else ""
   }
