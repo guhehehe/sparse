@@ -131,7 +131,7 @@ class Sparser private(
   /** Set value for positional arguments */
   private[this] def setVal(position: Int, value: String): Sparser = {
     if (position >= posArgs.length) {
-      errorExit(s"Too many positional arguments.")
+      exit(s"Too many positional arguments.")
     }
     val arg = posArgs(position)
     update(posArgs = posArgs.updated(position, arg.setValue(value)))
@@ -154,7 +154,7 @@ class Sparser private(
       setVal(newPosition, value).parserHelper(etc, newPosition, true)
     }
     // deal with optional arguments
-    case OptionalArg(arg, _) :: Value(value) :: etc if !cutoff => {
+    case OptionalArg(arg, _) :: etc if !cutoff => {
       val cname = canonicalName.get(args.head) match {
         case Some(name) => name
         case _ => args.head
@@ -164,28 +164,31 @@ class Sparser private(
           // negate the default value
           case true => {
             val switchOn = (!argObj.value.toBoolean).toString
-            setVal(argObj, switchOn).parserHelper(args.drop(1), lastPosition)
+            setVal(argObj, switchOn).parserHelper(etc, lastPosition)
           }
-          case false => setVal(argObj, value).parserHelper(etc, lastPosition)
+          case false if !etc.isEmpty => {
+            setVal(argObj, etc.head).parserHelper(etc.drop(1), lastPosition)
+          }
+          case _ => exit(s"Missing value for optional argument ${args.head}")
         }
         case Failure(e: NoSuchElementException) => {
-          errorExit(s"Unknown optional argument: ${args.head}.")
+          exit(s"Unknown optional argument: ${args.head}.")
         }
         case Failure(NonFatal(e)) => throw e
       }
     }
     case Nil => {
       if (lastPosition != posArgs.length - 1) {
-        errorExit(s"Too few positional arguments.")
+        exit(s"Too few positional arguments.")
       }
       this
     }
-    case _ => errorExit(s"Illegal argument: ${args.head}.")
+    case _ => exit(s"Illegal argument: ${args.head}.")
   }
 
-  private[this] def errorExit(message: String): Sparser = {
+  private[this] def exit(message: String, code: Int = 1): Sparser = {
     System.err.println(message)
-    System.exit(1)
+    System.exit(code)
     this
   }
 }
