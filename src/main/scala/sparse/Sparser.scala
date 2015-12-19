@@ -5,9 +5,11 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 object Sparser {
+  val helpArgName = "--help"
+
   def apply(progName: String = "prog", desc: String = "") = {
     val help = new OptionalArg("help", "false", "h", desc = "print this help message")
-    new Sparser(progName, desc, Vector.empty, Map("--help" -> help), Map("-h" -> "--help"))
+    new Sparser(progName, desc, Vector.empty, Map(helpArgName -> help), Map("-h" -> "--help"))
   }
 }
 
@@ -65,6 +67,8 @@ class Sparser private(
     private val posArgs: Vector[PositionalArg],
     private val optArgs: Map[String, OptionalArg],
     private val canonicalName: Map[String, String]) {
+
+  import Sparser._
 
   private[sparse] def update(
       progName: String = this.progName,
@@ -158,7 +162,7 @@ class Sparser private(
         case Some(name) => name
         case _ => args.head
       }
-      if (cname == "--help") {
+      if (cname == helpArgName) {
         printHelp()
       }
       Try(optArgs(cname)) match {
