@@ -2,6 +2,8 @@ package sparse
 
 import java.net.URI
 
+import org.joda.time.{DateTimeZone, DateTime}
+
 import scala.util.{Failure, Success, Try}
 
 object Preamble {
@@ -26,4 +28,6 @@ object Preamble {
         .map(_.split("="))
         .map { case Array(a1, a2) => (a1, a2) }: _*)
   }
+
+  implicit def Str2DateTime(s: String): DateTime = (new DateTime(s)).toDateTime(DateTimeZone.UTC)
 }
