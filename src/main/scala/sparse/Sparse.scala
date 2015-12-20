@@ -66,9 +66,9 @@ object Sparse {
 class Sparse private(
     val progName: String,
     val desc: String,
-    private val posArgs: Vector[PositionalArg],
-    private val optArgs: Map[String, OptionalArg],
-    private val canonicalName: Map[String, String]) {
+    private[sparse] val posArgs: Vector[PositionalArg],
+    private[sparse] val optArgs: Map[String, OptionalArg],
+    private[sparse] val canonicalName: Map[String, String]) {
 
   import Sparse._
 
