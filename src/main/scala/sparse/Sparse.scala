@@ -125,7 +125,15 @@ class Sparse private(
 
   def parse(arguments: Array[String]): Arguments = {
     val args = new Arguments()
-    val p = parserHelper(arguments.toList)
+    val p = Try(parserHelper(arguments.toList)) match {
+      case Success(parsed) => parsed
+      case Failure(e: IllegalArgumentException) => {
+        System.err.println(e.getMessage())
+        System.exit(1)
+        this
+      }
+      case Failure(NonFatal(e)) => throw e
+    }
     p.optArgs.values.foldLeft(p.posArgs.foldLeft(args)(foldFunc))(foldFunc)
   }
 
@@ -134,7 +142,7 @@ class Sparse private(
   /** Set value for positional arguments */
   private[sparse] def setVal(position: Int, value: String): Sparse = {
     if (position >= posArgs.length) {
-      errExit(s"Too many positional arguments.")
+      throw new IllegalArgumentException("Too many positional arguments.")
     }
     val arg = posArgs(position)
     update(posArgs = posArgs.updated(position, arg.setValue(value)))
@@ -175,29 +183,22 @@ class Sparse private(
           case false if !etc.isEmpty & !Value.unapply(etc.head).isEmpty => {
             setVal(argObj, etc.head).parserHelper(etc.drop(1), lastPosition)
           }
-          case _ => errExit(s"Missing value for optional argument ${args.head}")
+          case _ => {
+            throw new IllegalArgumentException(s"Missing value for optional argument ${args.head}.")
+          }
         }
         case Failure(e: NoSuchElementException) => {
-          errExit(s"Unknown optional argument: ${args.head}.")
+          throw new IllegalArgumentException(s"Unknown optional argument: ${args.head}.")
         }
         case Failure(NonFatal(e)) => throw e
       }
     }
     case Nil => {
       if (lastPosition != posArgs.length - 1) {
-        errExit(s"Too few positional arguments.")
-      }
-      this
+        throw new IllegalArgumentException(s"Too few positional arguments.")
+      } else this
     }
-    case _ => errExit(s"Illegal argument: ${args.head}.")
-  }
-
-  private[this] def errExit(message: String): Sparse = {
-    if (!message.isEmpty) {
-      System.err.println(message)
-    }
-    System.exit(1)
-    this
+    case _ => throw new IllegalArgumentException(s"Illegal argument: ${args.head}.")
   }
 
   private[this] def printHelp() = {
