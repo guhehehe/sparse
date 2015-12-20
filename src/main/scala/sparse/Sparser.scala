@@ -127,12 +127,10 @@ class Sparser private(
     p.optArgs.values.foldLeft(p.posArgs.foldLeft(args)(foldFunc))(foldFunc)
   }
 
-  private[this] def foldFunc(args: Arguments, arg: Argument): Arguments = {
-    args.set(arg.name, arg)
-  }
+  private[this] def foldFunc(args: Arguments, arg: Argument): Arguments = args.set(arg.name, arg)
 
   /** Set value for positional arguments */
-  private[this] def setVal(position: Int, value: String): Sparser = {
+  private[sparse] def setVal(position: Int, value: String): Sparser = {
     if (position >= posArgs.length) {
       errExit(s"Too many positional arguments.")
     }
@@ -141,7 +139,7 @@ class Sparser private(
   }
 
   /** Set value for optional arguments */
-  private[this] def setVal(arg: OptionalArg, value: String): Sparser = {
+  private[sparse] def setVal(arg: OptionalArg, value: String): Sparser = {
     val newArg = arg.setValue(value)
     update(optArgs = optArgs + (arg.name -> newArg))
   }
