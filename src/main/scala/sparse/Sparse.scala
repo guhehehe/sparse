@@ -1,15 +1,17 @@
 package sparse
 
+import org.joda.time.DateTime
+
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-object Sparser {
+object Sparse {
   val helpArgName = "--help"
 
   def apply(progName: String = "prog", desc: String = "") = {
     val help = new OptionalArg("help", "false", "h", desc = "print this help message")
-    new Sparser(progName, desc, Vector.empty, Map(helpArgName -> help), Map("-h" -> "--help"))
+    new Sparse(progName, desc, Vector.empty, Map(helpArgName -> help), Map("-h" -> "--help"))
   }
 }
 
@@ -61,22 +63,22 @@ object Sparser {
  * sparse.Value = 3
  * }}}
  */
-class Sparser private(
+class Sparse private(
     val progName: String,
     val desc: String,
     private val posArgs: Vector[PositionalArg],
     private val optArgs: Map[String, OptionalArg],
     private val canonicalName: Map[String, String]) {
 
-  import Sparser._
+  import Sparse._
 
   private[sparse] def update(
       progName: String = this.progName,
       desc: String = this.desc,
       posArgs: Vector[PositionalArg] = this.posArgs,
       optArgs: Map[String, OptionalArg] = this.optArgs,
-      canonicalName: Map[String, String] = this.canonicalName): Sparser = {
-    new Sparser(progName, desc, posArgs, optArgs, canonicalName)
+      canonicalName: Map[String, String] = this.canonicalName): Sparse = {
+    new Sparse(progName, desc, posArgs, optArgs, canonicalName)
   }
 
   /**
@@ -92,14 +94,14 @@ class Sparser private(
    * @param flag the shorthand representation of this argument
    * @param value the default value for this argument
    * @param options the options that the $value can be chosen from
-   * @return a new [[Sparser]] with this new argument added
+   * @return a new [[Sparse]] with this new argument added
    */
   def addArg(
       name: String,
       flag: String = "",
       value: String = "",
       options: Set[String] = Set.empty,
-      desc: String = ""): Sparser = {
+      desc: String = ""): Sparse = {
 
     val parsedVal = Value.unapply(value).getOrElse("")
     name match {
@@ -130,7 +132,7 @@ class Sparser private(
   private[this] def foldFunc(args: Arguments, arg: Argument): Arguments = args.set(arg.name, arg)
 
   /** Set value for positional arguments */
-  private[sparse] def setVal(position: Int, value: String): Sparser = {
+  private[sparse] def setVal(position: Int, value: String): Sparse = {
     if (position >= posArgs.length) {
       errExit(s"Too many positional arguments.")
     }
@@ -139,7 +141,7 @@ class Sparser private(
   }
 
   /** Set value for optional arguments */
-  private[sparse] def setVal(arg: OptionalArg, value: String): Sparser = {
+  private[sparse] def setVal(arg: OptionalArg, value: String): Sparse = {
     val newArg = arg.setValue(value)
     update(optArgs = optArgs + (arg.name -> newArg))
   }
@@ -148,7 +150,7 @@ class Sparser private(
   private[sparse] final def parserHelper(
       args: List[String],
       lastPosition: Int = -1,
-      cutoff: Boolean = false): Sparser = args match {
+      cutoff: Boolean = false): Sparse = args match {
     // deal with positional arguments
     case Value(value) :: etc => {
       val newPosition = lastPosition + 1
@@ -190,7 +192,7 @@ class Sparser private(
     case _ => errExit(s"Illegal argument: ${args.head}.")
   }
 
-  private[this] def errExit(message: String): Sparser = {
+  private[this] def errExit(message: String): Sparse = {
     if (!message.isEmpty) {
       System.err.println(message)
     }
@@ -206,19 +208,26 @@ class Sparser private(
 }
 
 object Main extends App {
+
+  import Preamble._
+
   override val args: Array[String] = Array(
-    "--help",
     "--optional-arg",
     "o2",
     "-f",
+    "2015-01-01",
     "http://api.api.com",
     "2.3"
   )
-  val arguments = Sparser("test-prog", "A test program")
+  val arguments = Sparse("test-prog", "A test program")
       .addArg("--haha", desc = "no val opt arg")
       .addArg("--flag", "-f", "false", desc = "abc")
       .addArg("--optional-arg", options = Set("o1", "o2", "o3"), desc = "opt arg Im trying my best to make this line over 79 chars")
+      .addArg("dt", desc = "date time")
       .addArg("uri", desc = "uri")
       .addArg("double", desc = "doulbe")
       .parse(args)
+
+  val dt: DateTime = arguments.dt
+  println(dt)
 }
