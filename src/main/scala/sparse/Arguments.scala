@@ -3,7 +3,7 @@ package sparse
 import scala.language.dynamics
 
 sealed class Arguments private(
-    private val args: Map[String, Argument]) extends Dynamic {
+    private[sparse] val args: Map[String, Argument]) extends Dynamic {
 
   private[sparse] def this() = this(Map.empty[String, Argument])
 
