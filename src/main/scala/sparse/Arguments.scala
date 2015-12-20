@@ -26,17 +26,19 @@ sealed class Arguments private(
     s"Arguments(${kv.mkString(", ")})"
   }
 
-  private[sparse] def toCamelCase(name: String) = name.replace('-', '_').toLowerCase()
-      .split('_')
-      .filter(!_.isEmpty)
-      .foldLeft("") {
-    (output, input) =>
-      if (output == "") {
-        // skip the first word
-        input
-      } else {
-        // capitalize the first letter of the reset of the words
-        s"$output${input.take(1).toUpperCase()}${input.drop(1)}"
-      }
+  private[sparse] def toCamelCase(name: String) = {
+    name.replace('-', '_')
+        .toLowerCase()
+        .split('_')
+        .filter(!_.isEmpty)
+        .foldLeft("") { (output, input) =>
+          if (output == "") {
+            // skip the first word
+            input
+          } else {
+            // capitalize the first letter of the reset of the words
+            s"$output${input.take(1).toUpperCase()}${input.drop(1)}"
+          }
+        }
   }
 }
