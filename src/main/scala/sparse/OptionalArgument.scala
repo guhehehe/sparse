@@ -3,9 +3,16 @@ package sparse
 import scala.util.{Success, Try}
 
 private[sparse] object OptionalArg {
-  def unapply(k: String): Option[(String, Boolean)] = Option(k).flatMap {
-    case k if k.startsWith("--") => Some((k.stripPrefix("--"), false))
-    case k if k.startsWith("-") => Some((k.stripPrefix("-"), true))
+  def unapply(k: String): Option[(String, Boolean)] = Option(k) match {
+    case Some(k) => Option {
+      if (k.forall(c => c.isLetterOrDigit | c == '-')) {
+        if (k.startsWith("--")) {
+          (k.stripPrefix("--"), false)
+        } else if (k.startsWith("-")) {
+          (k.stripPrefix("-"), true)
+        } else null
+      } else null
+    }
     case _ => None
   }
 }

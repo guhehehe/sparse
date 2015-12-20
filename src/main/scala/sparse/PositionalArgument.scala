@@ -1,12 +1,11 @@
 package sparse
 
 private[sparse] object PositionalArg {
-  def unapply(k: String): Option[String] = {
-    if (!k.isEmpty & !k.startsWith("-")) {
-      Some(k)
-    } else {
-      None
+  def unapply(k: String): Option[String] = Option(k) match {
+    case Some(k) => Option {
+      if (!k.isEmpty & !k.startsWith("-") & k.forall(c => c.isLetterOrDigit | c == '-')) k else null
     }
+    case _ => None
   }
 }
 
