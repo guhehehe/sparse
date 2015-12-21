@@ -99,4 +99,81 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+  // Test Sparse#parse
+  /////////////////////////////////////////////////////////////////////////////
+
+  "`parse`" should "create Arguments obj and add all arguments to it" in {
+    val args = sparse.addArg("arg1").addArg("arg2").addArg("--arg3")
+    val value = "value"
+    val parsedArgs = args.parse(Array("--arg3", value, value, value))
+
+    args.posArgs.foreach { thisArg =>
+      val name = parsedArgs.toCamelCase(thisArg.name)
+      val thatArg = parsedArgs.args.get(name).get
+      assertResult(true) {
+        thisArg.name == thatArg.name
+      }
+      assertResult(true) {
+        thatArg.value == value
+      }
+    }
+
+    args.optArgs.foreach { thisTpl =>
+      val (_, thisArg) = thisTpl
+      val name = parsedArgs.toCamelCase(thisArg.name)
+      val thatArg = parsedArgs.args.get(name).get
+      assertResult(true) {
+        thisArg.name == thatArg.name
+      }
+      assertResult(true) {
+        if (name == "help") {
+          thatArg.value == "false"
+        } else {
+          thatArg.value == value
+        }
+      }
+    }
+
+    // if the above tests are passed, this ensures that the args added to Sparse are exactly the
+    // same args in the parsed Arguments obj
+    assertResult(parsedArgs.args.size) {
+      args.posArgs.size + args.optArgs.size
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Test Sparse#parseHelper
+  /////////////////////////////////////////////////////////////////////////////
+
+  "`parseHelper`" should "raise IllegalArgumentException when there's too few positional args" in {
+    intercept[IllegalArgumentException] {
+      sparse.addArg("posarg").parserHelper(Nil)
+    }
+    intercept[IllegalArgumentException] {
+      sparse.addArg("--optarg").addArg("posarg1").addArg("posarg2").parserHelper("arg1" :: Nil)
+    }
+    intercept[IllegalArgumentException] {
+      sparse.addArg("--optarg").addArg("posarg").parserHelper("--optarg":: "arg1" :: Nil)
+    }
+  }
+
+  "`parseHelper`" should "raise IllegalArgumentException when there's too many positional args" in {
+    intercept[IllegalArgumentException] {
+      sparse.parserHelper("arg1" :: Nil)
+    }
+    intercept[IllegalArgumentException] {
+      sparse.addArg("posarg1").parserHelper("arg1" :: "arg2" :: Nil)
+    }
+    intercept[IllegalArgumentException] {
+      sparse.addArg("--optarg").parserHelper("arg1" :: Nil)
+    }
+    intercept[IllegalArgumentException] {
+      sparse
+        .addArg("--optarg")
+        .addArg("posarg1")
+        .addArg("posarg2")
+        .parserHelper("--optarg":: "optarg" :: "posarg" :: Nil)
+    }
+  }
 }
