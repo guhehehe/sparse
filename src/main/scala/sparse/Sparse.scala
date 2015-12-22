@@ -7,9 +7,9 @@ import scala.util.{Failure, Success, Try}
 object Sparse {
   val helpName = "help"
   val helpFlag = "h"
-  val defautlProgName = "prog"
+  val defaultProgName = "prog"
 
-  def apply(progName: String = defautlProgName, desc: String = "") = {
+  def apply(progName: String = defaultProgName, desc: String = "") = {
     val help = new OptionalArg(helpName, "false", helpFlag, desc = "print this help message")
     new Sparse(progName, desc, Vector.empty, Map(helpName -> help), Map(helpFlag -> helpName))
   }
