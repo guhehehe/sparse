@@ -57,22 +57,25 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
   }
 
   "Add optional argument" should "create proper mapping for optional arguments" in {
-    assertResult(false) {
-      sparse.optArgs.contains("--name") | sparse.canonicalName.contains("-f")
-    }
     val name = "optarg"
     val flag = "f"
     val value = "opt1"
     val desc = "desc"
     val opt = Set("opt1", "opt2")
+
+    assertResult(false) {
+      sparse.optArgs.contains(s"$name") | sparse.canonicalName.contains(s"$flag")
+    }
+
     val newSparse = sparse.addArg(s"--$name", s"-$flag", value = value, desc = desc, options = opt)
     assertResult(true) {
-      newSparse.optArgs.contains(s"--$name")
+      newSparse.optArgs.contains(s"$name")
     }
-    assertResult(Some(s"--$name")) {
-      newSparse.canonicalName.get(s"-$flag")
+    assertResult(Some(s"$name")) {
+      newSparse.canonicalName.get(s"$flag")
     }
-    val optArg = newSparse.optArgs(s"--$name")
+
+    val optArg = newSparse.optArgs(s"$name")
     assertResult(name) {
       optArg.name
     }

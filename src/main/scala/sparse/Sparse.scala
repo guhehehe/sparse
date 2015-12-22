@@ -7,11 +7,13 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 object Sparse {
-  val helpArgName = "--help"
+  val helpArgName = "help"
+  val helpArgFlag = "help"
+  val defautlProgName = "prog"
 
-  def apply(progName: String = "prog", desc: String = "") = {
-    val help = new OptionalArg("help", "false", "h", desc = "print this help message")
-    new Sparse(progName, desc, Vector.empty, Map(helpArgName -> help), Map("-h" -> "--help"))
+  def apply(progName: String = defautlProgName, desc: String = "") = {
+    val help = new OptionalArg(helpArgName, "false", helpArgFlag, desc = "print this help message")
+    new Sparse(progName, desc, Vector.empty, Map(helpArgName -> help), Map(helpArgFlag -> "--help"))
   }
 }
 
@@ -110,14 +112,14 @@ class Sparse private(
         val argObj = new PositionalArg(position, name, options = options, desc = desc)
         update(posArgs = posArgs :+ argObj)
       }
-      case arg@OptionalArg(name, isFlag) if !isFlag => {
+      case OptionalArg(name, isFlag) if !isFlag => {
         val argObj = new OptionalArg(name, parsedVal, options = options, desc = desc).setFlag(flag)
         val newCname = if (!argObj.flag.isEmpty) {
-          canonicalName + (flag -> arg)
+          canonicalName + (flag.stripPrefix("-") -> name)
         } else {
           canonicalName
         }
-        update(optArgs = optArgs + (arg -> argObj), canonicalName = newCname)
+        update(optArgs = optArgs + (name -> argObj), canonicalName = newCname)
       }
       case unknown => throw new IllegalArgumentException(s"Can't handle argument: $unknown.")
     }
@@ -168,7 +170,7 @@ class Sparse private(
     case OptionalArg(arg, _) :: etc if !cutoff => {
       val cname = canonicalName.get(args.head) match {
         case Some(name) => name
-        case _ => args.head
+        case _ => arg
       }
       if (cname == helpArgName) {
         printHelp()
