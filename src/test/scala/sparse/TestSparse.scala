@@ -188,7 +188,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     testParsed(added2, parsed2, Array("arg1", "arg2"))
   }
 
-  "`parseHelper`" should "set proper value for added optional arguments" in {
+  it should "set proper value for added optional arguments" in {
     val nameValue = Map("arg1" -> "val1", "arg2" -> "val2")
     nameValue.foreach {
       case (name, _) => assertResult(false) {
@@ -217,7 +217,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  "`parseHelper`" should "raise TooFewArgsException when there's too few positional args" in {
+  it should "raise TooFewArgsException when there's too few positional args" in {
     intercept[TooFewArgsException] {
       sparse.addArg("posarg").parserHelper(Nil)
     }
@@ -229,7 +229,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  "`parseHelper`" should "raise TooManyArgsException when there's too many positional args" in {
+  it should "raise TooManyArgsException when there's too many positional args" in {
     intercept[TooManyArgsException] {
       sparse.parserHelper("arg1" :: Nil)
     }
@@ -247,23 +247,23 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  "`parseHelper`" should "raise UnknownArgException when opt arg appears after pos arg" in {
+  it should "raise UnknownArgException when opt arg appears after pos arg" in {
     intercept[UnknownArgException] {
       sparse.addArg("--optarg").addArg("posarg1").parserHelper("arg1" :: "--optarg" :: "value" :: Nil)
     }
   }
 
-  "`parseHelper`" should "raise MissingValueException when missing value for opt arg" in {
+  it should "raise MissingValueException when missing value for opt arg" in {
     intercept[MissingValueException] {
       sparse.addArg("--optarg").parserHelper("--optarg" :: Nil)
     }
   }
 
-  "`parseHelper`" should "raise UnknownArgException when wrong opt is provided" in {
+  it should "raise UnknownArgException when wrong opt is provided" in {
     intercept[UnknownArgException] {
       sparse.addArg("--optarg").parserHelper("--other" :: "value" :: Nil)
     }
   }
 
-  "`parseHelper`" should "negate the default value when switch arg is present"
+  it should "negate the default value when switch arg is present"
 }
