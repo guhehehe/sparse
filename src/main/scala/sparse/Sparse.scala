@@ -1,7 +1,5 @@
 package sparse
 
-import org.joda.time.DateTime
-
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -208,29 +206,4 @@ class Sparse private(
     println(formatter.getHelp)
     System.exit(0)
   }
-}
-
-object Main extends App {
-
-  import Preamble._
-
-  override val args: Array[String] = Array(
-    "--optional-arg",
-    "o2",
-    "-f",
-    "2015-01-01",
-    "http://api.api.com",
-    "2.3"
-  )
-  val arguments = Sparse("test-prog", "A test program")
-      .addArg("--haha", desc = "no val opt arg")
-      .addArg("--flag", "-f", "false", desc = "abc")
-      .addArg("--optional-arg", options = Set("o1", "o2", "o3"), desc = "opt arg Im trying my best to make this line over 79 chars")
-      .addArg("dt", desc = "date time")
-      .addArg("uri", desc = "uri")
-      .addArg("double", desc = "doulbe")
-      .parse(args)
-
-  val dt: DateTime = arguments.dt
-  println(dt)
 }
