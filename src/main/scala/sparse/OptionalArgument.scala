@@ -5,7 +5,7 @@ import scala.util.{Success, Try}
 private[sparse] object OptionalArg {
   def unapply(k: String): Option[(String, Boolean)] = Option(k) match {
     case Some(k) => Option {
-      if (k.forall(c => c.isLetterOrDigit | c == '-')) {
+      if (k.forall(c => c.isLetterOrDigit || c == '-')) {
         if (k.startsWith("--")) {
           (k.stripPrefix("--"), false)
         } else if (k.startsWith("-")) {
@@ -43,7 +43,7 @@ private[sparse] class OptionalArg(
   def setFlag(flag: String) = {
     if (!flag.isEmpty) {
       flag match {
-        case OptionalArg(_, isFlag) if flag.isEmpty | isFlag => update(flag = flag.stripPrefix("-"))
+        case OptionalArg(_, isFlag) if flag.isEmpty || isFlag => update(flag = flag.stripPrefix("-"))
         case unknown => throw new IllegalArgumentException(
           s"Can't handle flag: $unknown, make sure flag argument is prefixed by a single '-'."
         )

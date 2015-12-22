@@ -180,7 +180,7 @@ class Sparse private(
             val switchOn = (!argObj.value.toBoolean).toString
             setVal(argObj, switchOn).parserHelper(etc, lastPosition)
           }
-          case false if !etc.isEmpty & !Value.unapply(etc.head).isEmpty => {
+          case false if !etc.isEmpty && !Value.unapply(etc.head).isEmpty => {
             setVal(argObj, etc.head).parserHelper(etc.drop(1), lastPosition)
           }
           case _ => {
