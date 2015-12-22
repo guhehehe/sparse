@@ -119,7 +119,7 @@ class Sparse private(
         }
         update(optArgs = optArgs + (name -> argObj), canonicalName = newCname)
       }
-      case unknown => throw new IllegalArgumentException(s"Can't handle argument: $unknown.")
+      case unknown => throw new ArgFormatException(s"Can't handle argument: $unknown.")
     }
   }
 
@@ -127,7 +127,7 @@ class Sparse private(
     val args = new Arguments()
     val p = Try(parserHelper(arguments.toList)) match {
       case Success(parsed) => parsed
-      case Failure(e: IllegalArgumentException) => {
+      case Failure(e: SparseException) => {
         System.err.println(e.getMessage())
         System.exit(1)
         this
@@ -142,7 +142,7 @@ class Sparse private(
   /** Set value for positional arguments */
   private[sparse] def setVal(position: Int, value: String): Sparse = {
     if (position >= posArgs.length) {
-      throw new IllegalArgumentException("Too many positional arguments.")
+      throw new TooManyArgsException("Too many positional arguments.")
     }
     val arg = posArgs(position)
     update(posArgs = posArgs.updated(position, arg.setValue(value)))
@@ -184,21 +184,21 @@ class Sparse private(
             setVal(argObj, etc.head).parserHelper(etc.drop(1), lastPosition)
           }
           case _ => {
-            throw new IllegalArgumentException(s"Missing value for optional argument ${args.head}.")
+            throw new MissingValueException(s"Missing value for optional argument ${args.head}.")
           }
         }
         case Failure(e: NoSuchElementException) => {
-          throw new IllegalArgumentException(s"Unknown optional argument: ${args.head}.")
+          throw new UnknownArgException(s"Unknown optional argument: ${args.head}.", e)
         }
         case Failure(NonFatal(e)) => throw e
       }
     }
     case Nil => {
       if (lastPosition != posArgs.length - 1) {
-        throw new IllegalArgumentException(s"Too few positional arguments.")
+        throw new TooFewArgsException("Too few positional arguments.")
       } else this
     }
-    case _ => throw new IllegalArgumentException(s"Illegal argument: ${args.head}.")
+    case _ => throw new UnknownArgException(s"Can't handle argument: ${args.head}.")
   }
 
   private[this] def printHelp() = {

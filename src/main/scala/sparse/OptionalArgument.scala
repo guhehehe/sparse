@@ -44,7 +44,7 @@ private[sparse] class OptionalArg(
     if (!flag.isEmpty) {
       flag match {
         case OptionalArg(_, isFlag) if flag.isEmpty || isFlag => update(flag = flag.stripPrefix("-"))
-        case unknown => throw new IllegalArgumentException(
+        case unknown => throw new ArgFormatException(
           s"Can't handle flag: $unknown, make sure flag argument is prefixed by a single '-'."
         )
       }

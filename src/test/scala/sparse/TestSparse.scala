@@ -9,14 +9,14 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
   // Test Sparse#addArg
   /////////////////////////////////////////////////////////////////////////////
 
-  "`addArg`" should "throw IllegalArgumentException if the `name` argument is malformed" in {
-    intercept[IllegalArgumentException] {
+  "`addArg`" should "throw ArgFormatException if the `name` argument is malformed" in {
+    intercept[ArgFormatException] {
       sparse.addArg("-wrong-arg")
     }
-    intercept[IllegalArgumentException] {
+    intercept[ArgFormatException] {
       sparse.addArg("wrong+arg")
     }
-    intercept[IllegalArgumentException] {
+    intercept[ArgFormatException] {
       sparse.addArg("--wrong+arg")
     }
   }
@@ -93,11 +93,11 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  it should "throw IllegalArgumentException if `flag` does not start with a single '-'" in {
-    intercept[IllegalArgumentException] {
+  it should "throw ArgFormatException if `flag` does not start with a single '-'" in {
+    intercept[ArgFormatException] {
       sparse.addArg("--arg", "f")
     }
-    intercept[IllegalArgumentException] {
+    intercept[ArgFormatException] {
       sparse.addArg("--arg", "--f")
     }
   }
@@ -217,51 +217,50 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  "`parseHelper`" should "raise IllegalArgumentException when there's too few positional args" in {
-    intercept[IllegalArgumentException] {
+  "`parseHelper`" should "raise TooFewArgsException when there's too few positional args" in {
+    intercept[TooFewArgsException] {
       sparse.addArg("posarg").parserHelper(Nil)
     }
-    intercept[IllegalArgumentException] {
+    intercept[TooFewArgsException] {
       sparse.addArg("--optarg").addArg("posarg1").addArg("posarg2").parserHelper("arg1" :: Nil)
     }
-    intercept[IllegalArgumentException] {
+    intercept[TooFewArgsException] {
       sparse.addArg("--optarg").addArg("posarg").parserHelper("--optarg":: "arg1" :: Nil)
     }
   }
 
-  "`parseHelper`" should "raise IllegalArgumentException when there's too many positional args" in {
-    intercept[IllegalArgumentException] {
+  "`parseHelper`" should "raise TooManyArgsException when there's too many positional args" in {
+    intercept[TooManyArgsException] {
       sparse.parserHelper("arg1" :: Nil)
     }
-    intercept[IllegalArgumentException] {
+    intercept[TooManyArgsException] {
       sparse.addArg("posarg1").parserHelper("arg1" :: "arg2" :: Nil)
     }
-    intercept[IllegalArgumentException] {
+    intercept[TooManyArgsException] {
       sparse.addArg("--optarg").parserHelper("arg1" :: Nil)
     }
-    intercept[IllegalArgumentException] {
+    intercept[TooManyArgsException] {
       sparse
         .addArg("--optarg")
         .addArg("posarg1")
-        .addArg("posarg2")
-        .parserHelper("--optarg":: "optarg" :: "posarg" :: Nil)
+        .parserHelper("--optarg":: "optarg" :: "posarg" :: "posarg" :: Nil)
     }
   }
 
-  "`parseHelper`" should "raise IllegalArgumentException when opt arg appears after pos arg" in {
-    intercept[IllegalArgumentException] {
+  "`parseHelper`" should "raise UnknownArgException when opt arg appears after pos arg" in {
+    intercept[UnknownArgException] {
       sparse.addArg("--optarg").addArg("posarg1").parserHelper("arg1" :: "--optarg" :: "value" :: Nil)
     }
   }
 
-  "`parseHelper`" should "raise IllegalArgumentException when missing value for opt arg" in {
-    intercept[IllegalArgumentException] {
-      sparse.addArg("--optarg").addArg("arg").parserHelper("--optarg" :: "value" :: Nil)
+  "`parseHelper`" should "raise MissingValueException when missing value for opt arg" in {
+    intercept[MissingValueException] {
+      sparse.addArg("--optarg").parserHelper("--optarg" :: Nil)
     }
   }
 
-  "`parseHelper`" should "raise IllegalArgumentException when wrong opt is provided" in {
-    intercept[IllegalArgumentException] {
+  "`parseHelper`" should "raise UnknownArgException when wrong opt is provided" in {
+    intercept[UnknownArgException] {
       sparse.addArg("--optarg").parserHelper("--other" :: "value" :: Nil)
     }
   }
