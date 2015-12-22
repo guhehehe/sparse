@@ -5,13 +5,13 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 object Sparse {
-  val helpArgName = "help"
-  val helpArgFlag = "help"
+  val helpName = "help"
+  val helpFlag = "h"
   val defautlProgName = "prog"
 
   def apply(progName: String = defautlProgName, desc: String = "") = {
-    val help = new OptionalArg(helpArgName, "false", helpArgFlag, desc = "print this help message")
-    new Sparse(progName, desc, Vector.empty, Map(helpArgName -> help), Map(helpArgFlag -> "--help"))
+    val help = new OptionalArg(helpName, "false", helpFlag, desc = "print this help message")
+    new Sparse(progName, desc, Vector.empty, Map(helpName -> help), Map(helpFlag -> helpName))
   }
 }
 
@@ -170,7 +170,7 @@ class Sparse private(
         case Some(name) => name
         case _ => arg
       }
-      if (cname == helpArgName) {
+      if (cname == helpName) {
         printHelp()
       }
       Try(optArgs(cname)) match {
