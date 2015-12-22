@@ -149,6 +149,74 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
   // Test Sparse#parseHelper
   /////////////////////////////////////////////////////////////////////////////
 
+  "`parseHelper`" should "set proper value for added positional arguments" in {
+    def testAdded(added: Sparse, num: Int) = {
+      assertResult(num) {
+        added.posArgs.size
+      }
+      added.posArgs.foreach { arg =>
+        assertResult(true)(arg.value.isEmpty)
+      }
+    }
+
+    def testParsed(added: Sparse, parsed: Sparse, values: Array[String]) = {
+      val length = added.posArgs.size
+      for (i <- 0 until length) {
+        assertResult(true) {
+          parsed.posArgs(i).name == added.posArgs(i).name
+        }
+        assertResult(values(i)) {
+          parsed.posArgs(i).value
+        }
+      }
+    }
+
+    assertResult(0) {
+      sparse.posArgs.size
+    }
+
+    val added = sparse.addArg("posarg1").addArg("posarg2")
+    testAdded(added, 2)
+
+    val parsed = added.parserHelper("arg1" :: "arg2" :: Nil)
+    testParsed(added, parsed, Array("arg1", "arg2"))
+
+    val added2 = sparse.addArg("posarg1").addArg("posarg2").addArg("--optarg")
+    testAdded(added2, 2)
+
+    val parsed2 = added2.parserHelper("--optarg" :: "opt" :: "arg1" :: "arg2" :: Nil)
+    testParsed(added2, parsed2, Array("arg1", "arg2"))
+  }
+
+  "`parseHelper`" should "set proper value for added optional arguments" in {
+    val nameValue = Map("arg1" -> "val1", "arg2" -> "val2")
+    nameValue.foreach {
+      case (name, _) => assertResult(false) {
+        sparse.optArgs.contains(name)
+      }
+    }
+
+    val added = nameValue.foldLeft(sparse) { (init, acc) => init.addArg(s"--${acc._1}") }
+    nameValue.foreach {
+      case (name, value) => {
+        assertResult(true) {
+          added.optArgs.contains(name)
+        }
+        assertResult(true) {
+          added.optArgs(name).value.isEmpty
+        }
+      }
+    }
+
+    val args = nameValue.foldRight(Nil: List[String]) { (acc, init) => s"--${acc._1}" :: acc._2 :: init }
+    val parsed = added.parserHelper(args)
+    nameValue.foreach {
+      case (name, value) => assertResult(value) {
+        parsed.optArgs(name).value
+      }
+    }
+  }
+
   "`parseHelper`" should "raise IllegalArgumentException when there's too few positional args" in {
     intercept[IllegalArgumentException] {
       sparse.addArg("posarg").parserHelper(Nil)
@@ -179,4 +247,24 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
         .parserHelper("--optarg":: "optarg" :: "posarg" :: Nil)
     }
   }
+
+  "`parseHelper`" should "raise IllegalArgumentException when opt arg appears after pos arg" in {
+    intercept[IllegalArgumentException] {
+      sparse.addArg("--optarg").addArg("posarg1").parserHelper("arg1" :: "--optarg" :: "value" :: Nil)
+    }
+  }
+
+  "`parseHelper`" should "raise IllegalArgumentException when missing value for opt arg" in {
+    intercept[IllegalArgumentException] {
+      sparse.addArg("--optarg").addArg("arg").parserHelper("--optarg" :: "value" :: Nil)
+    }
+  }
+
+  "`parseHelper`" should "raise IllegalArgumentException when wrong opt is provided" in {
+    intercept[IllegalArgumentException] {
+      sparse.addArg("--optarg").parserHelper("--other" :: "value" :: Nil)
+    }
+  }
+
+  "`parseHelper`" should "negate the default value when switch arg is present"
 }
