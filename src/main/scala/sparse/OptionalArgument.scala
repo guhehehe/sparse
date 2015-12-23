@@ -53,7 +53,7 @@ private[sparse] class OptionalArg(
     }
   }
 
-  override def setValue(value: String) = {
+  override def setValue(value: String): OptionalArg = {
     if (value != this.value) {
       update(value = value)
     } else {

@@ -19,7 +19,7 @@ private[sparse] class PositionalArg(
     desc: String = "",
     valFormat: String = "") extends Argument(name, value, options, desc, valFormat) {
 
-  override def setValue(value: String) = {
+  override def setValue(value: String): PositionalArg = {
     if (value != this.value) {
       new PositionalArg(index, name, value, options, desc)
     } else {
