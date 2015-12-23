@@ -4,6 +4,8 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 
+crossScalaVersions := Seq("2.10.5", "2.11.2")
+
 lazy val root = (project in file(".")).
     settings(
       name := "sparse",
