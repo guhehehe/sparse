@@ -300,5 +300,20 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  it should "negate the default value when switch arg is present"
+  it should "negate the default value when switch arg is present" in {
+    def test(value: Boolean) = {
+      val strValue = value.toString
+      val added = sparse.addArg("--flag", "-f", value = strValue)
+      assertResult(strValue) {
+        added.optArgs("flag").value
+      }
+      val parsed = added.parserHelper("-f" :: Nil)
+      assertResult((!value).toString) {
+        parsed.optArgs("flag").value
+      }
+    }
+
+    test(false)
+    test(true)
+  }
 }
