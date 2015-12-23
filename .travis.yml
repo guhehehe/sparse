@@ -1,7 +1,6 @@
 # See http://about.travis-ci.org/docs/user/build-configuration/
 language: scala
 scala:
-   - 2.9.3
    - 2.10.5
    - 2.11.2
 branches:
