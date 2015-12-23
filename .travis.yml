@@ -1,8 +1,8 @@
 # See http://about.travis-ci.org/docs/user/build-configuration/
 language: scala
 scala:
-   - 2.10.5
-   - 2.11.2
+  - 2.10.5
+  - 2.11.2
 branches:
   only:
     - master
@@ -12,3 +12,7 @@ notifications:
       - gh1z114@gmail.com
 jdk:
   - oraclejdk7
+script:
+  - sbt clean coverage test
+after_success:
+  - pip install --user codecov && codecov
