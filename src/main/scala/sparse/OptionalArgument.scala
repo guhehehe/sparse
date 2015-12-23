@@ -40,7 +40,7 @@ private[sparse] class OptionalArg(
     case _ => false
   }
 
-  def setFlag(flag: String) = {
+  def setFlag(flag: String): OptionalArg = {
     if (!flag.isEmpty) {
       flag match {
         case OptionalArg(_, isFlag) if flag.isEmpty || isFlag => update(flag = flag.stripPrefix("-"))
@@ -48,17 +48,13 @@ private[sparse] class OptionalArg(
           s"Can't handle flag: $unknown, make sure flag argument is prefixed by a single '-'."
         )
       }
-    } else {
-      this
-    }
+    } else this
   }
 
   override def setValue(value: String): OptionalArg = {
     if (value != this.value) {
       update(value = value)
-    } else {
-      this
-    }
+    } else this
   }
 
   override def toString = s"PositionalArgument(name=$name, value=$value, flag=$flag " +

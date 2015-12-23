@@ -22,9 +22,7 @@ private[sparse] class PositionalArg(
   override def setValue(value: String): PositionalArg = {
     if (value != this.value) {
       new PositionalArg(index, name, value, options, desc)
-    } else {
-      this
-    }
+    } else this
   }
 
   override def toString = s"PositionalArgument(index=$index, name=$name, value=$value, " +

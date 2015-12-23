@@ -114,9 +114,7 @@ class Sparse private(
         val argObj = new OptionalArg(name, parsedVal, options = options, desc = desc).setFlag(flag)
         val newCname = if (!argObj.flag.isEmpty) {
           canonicalName + (flag.stripPrefix("-") -> name)
-        } else {
-          canonicalName
-        }
+        } else canonicalName
         update(optArgs = optArgs + (name -> argObj), canonicalName = newCname)
       }
       case unknown => throw new ArgFormatException(s"Can't handle argument: $unknown.")
