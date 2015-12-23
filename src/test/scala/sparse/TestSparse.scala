@@ -9,7 +9,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
   // Test Sparse#addArg
   /////////////////////////////////////////////////////////////////////////////
 
-  "`addArg`" should "throw ArgFormatException if the `name` argument is malformed" in {
+  "Adding argument" should "throw ArgFormatException if its `name` is malformed" in {
     intercept[ArgFormatException] {
       sparse.addArg("-wrong-arg")
     }
@@ -21,7 +21,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  "Add positional argument" should "create positional argument and push into `posArgs`" in {
+  "Adding positional argument" should "create positional argument and push into `posArgs`" in {
     assertResult(0) {
       sparse.posArgs.size
     }
@@ -56,7 +56,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  "Add optional argument" should "create proper mapping for optional arguments" in {
+  "Adding optional argument" should "create proper mapping in `optArgs` and `canonicalName`" in {
     val name = "optarg"
     val flag = "f"
     val value = "opt1"
@@ -106,7 +106,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
   // Test Sparse#parse
   /////////////////////////////////////////////////////////////////////////////
 
-  "`parse`" should "create Arguments obj and add all arguments to it" in {
+  "Calling parse" should "create an Arguments object and add all arguments to it" in {
     val args = sparse.addArg("arg1").addArg("arg2").addArg("--arg3")
     val value = "value"
     val parsedArgs = args.parse(Array("--arg3", value, value, value))
@@ -149,7 +149,8 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
   // Test Sparse#parseHelper
   /////////////////////////////////////////////////////////////////////////////
 
-  "`parseHelper`" should "set proper value for added positional arguments" in {
+  "Calling parseHelper with positional arguments" should
+      "set value for the arguments at the same index in `posArgs`" in {
     def testAdded(added: Sparse, num: Int) = {
       assertResult(num) {
         added.posArgs.size
@@ -188,7 +189,8 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     testParsed(added2, parsed2, Array("arg1", "arg2"))
   }
 
-  it should "set proper value for added long optional arguments" in {
+  "Calling parseHelper with long optional arguments(--arg)" should
+      "set value for the matching arguments in `optArgs`" in {
     val nameValue = Map("arg1" -> "val1", "arg2" -> "val2")
     nameValue.foreach {
       case (name, _) => assertResult(false) {
@@ -208,7 +210,9 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
       }
     }
 
-    val args = nameValue.foldRight(Nil: List[String]) { (acc, init) => s"--${acc._1}" :: acc._2 :: init }
+    val args = nameValue.foldRight(Nil: List[String]) { (acc, init) =>
+      s"--${acc._1}" :: acc._2 :: init
+    }
     val parsed = added.parserHelper(args)
     nameValue.foreach {
       case (name, value) => assertResult(value) {
@@ -217,7 +221,8 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  it should "set proper value for added short optional arguments" in {
+  "Calling parseHelper with flag optional arguments(-f)" should
+      "set value for the matching arguments in `optArgs`" in {
     val nameValue = Map("f" -> "val1", "t" -> "val2")
     nameValue.foreach {
       case (name, _) => assertResult(false) {
@@ -252,7 +257,24 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  it should "raise TooFewArgsException when there's too few positional args" in {
+  "Calling parseHelper with switch optional argument" should "negate the default value" in {
+    def test(value: Boolean) = {
+      val strValue = value.toString
+      val added = sparse.addArg("--flag", "-f", value = strValue)
+      assertResult(strValue) {
+        added.optArgs("flag").value
+      }
+      val parsed = added.parserHelper("-f" :: Nil)
+      assertResult((!value).toString) {
+        parsed.optArgs("flag").value
+      }
+    }
+
+    test(false)
+    test(true)
+  }
+
+  "Calling parseHelper" should "raise TooFewArgsException when there's too few positional args" in {
     intercept[TooFewArgsException] {
       sparse.addArg("posarg").parserHelper(Nil)
     }
@@ -298,22 +320,5 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     intercept[UnknownArgException] {
       sparse.addArg("--optarg").parserHelper("--other" :: "value" :: Nil)
     }
-  }
-
-  it should "negate the default value when switch arg is present" in {
-    def test(value: Boolean) = {
-      val strValue = value.toString
-      val added = sparse.addArg("--flag", "-f", value = strValue)
-      assertResult(strValue) {
-        added.optArgs("flag").value
-      }
-      val parsed = added.parserHelper("-f" :: Nil)
-      assertResult((!value).toString) {
-        parsed.optArgs("flag").value
-      }
-    }
-
-    test(false)
-    test(true)
   }
 }
