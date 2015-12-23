@@ -188,7 +188,7 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     testParsed(added2, parsed2, Array("arg1", "arg2"))
   }
 
-  it should "set proper value for added optional arguments" in {
+  it should "set proper value for added long optional arguments" in {
     val nameValue = Map("arg1" -> "val1", "arg2" -> "val2")
     nameValue.foreach {
       case (name, _) => assertResult(false) {
@@ -213,6 +213,41 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     nameValue.foreach {
       case (name, value) => assertResult(value) {
         parsed.optArgs(name).value
+      }
+    }
+  }
+
+  it should "set proper value for added short optional arguments" in {
+    val nameValue = Map("f" -> "val1", "t" -> "val2")
+    nameValue.foreach {
+      case (name, _) => assertResult(false) {
+        sparse.canonicalName.contains(name)
+      }
+    }
+
+    val added = nameValue.foldLeft(sparse) { (init, acc) =>
+      init.addArg(s"--arg${acc._1}", s"-${acc._1}")
+    }
+    nameValue.foreach {
+      case (name, value) => {
+        assertResult(true) {
+          added.canonicalName.contains(name)
+        }
+        assertResult(true) {
+          val cname = added.canonicalName(name)
+          added.optArgs(cname).value.isEmpty
+        }
+      }
+    }
+
+    val args = nameValue.foldRight(Nil: List[String]) { (acc, init) =>
+      s"-${acc._1}" :: acc._2 :: init
+    }
+    val parsed = added.parserHelper(args)
+    nameValue.foreach {
+      case (name, value) => assertResult(value) {
+        val cname = added.canonicalName(name)
+        parsed.optArgs(cname).value
       }
     }
   }

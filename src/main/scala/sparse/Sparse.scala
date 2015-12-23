@@ -166,7 +166,7 @@ class Sparse private(
     }
     // deal with optional arguments
     case OptionalArg(arg, _) :: etc if !cutoff => {
-      val cname = canonicalName.get(args.head) match {
+      val cname = canonicalName.get(arg) match {
         case Some(name) => name
         case _ => arg
       }
