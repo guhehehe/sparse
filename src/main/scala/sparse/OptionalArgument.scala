@@ -41,7 +41,7 @@ private[sparse] class OptionalArg(
   }
 
   def setFlag(flag: String): OptionalArg = {
-    if (!flag.isEmpty) {
+    if (flag.nonEmpty) {
       flag match {
         case OptionalArg(_, isFlag) if flag.isEmpty || isFlag => update(flag = flag.stripPrefix("-"))
         case unknown => throw new ArgFormatException(

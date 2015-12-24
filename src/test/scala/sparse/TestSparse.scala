@@ -321,4 +321,9 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
       sparse.addArg("--optarg").parserHelper("--other" :: "value" :: Nil)
     }
   }
+  it should "raise UnknownArgException when the input arg is not in `options`" in {
+    intercept[UnknownArgException] {
+      sparse.addArg("arg", options = Set("opt1", "opt2")).parserHelper("opt3" :: Nil)
+    }
+  }
 }

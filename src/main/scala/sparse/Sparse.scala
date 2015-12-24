@@ -112,7 +112,7 @@ class Sparse private(
       }
       case OptionalArg(name, isFlag) if !isFlag => {
         val argObj = new OptionalArg(name, parsedVal, options = options, desc = desc).setFlag(flag)
-        val newCname = if (!argObj.flag.isEmpty) {
+        val newCname = if (argObj.flag.nonEmpty) {
           canonicalName + (flag.stripPrefix("-") -> name)
         } else canonicalName
         update(optArgs = optArgs + (name -> argObj), canonicalName = newCname)
@@ -125,11 +125,7 @@ class Sparse private(
     val args = new Arguments()
     val p = Try(parserHelper(arguments.toList)) match {
       case Success(parsed) => parsed
-      case Failure(e: SparseException) => {
-        System.err.println(e.getMessage())
-        System.exit(1)
-        this
-      }
+      case Failure(e: SparseException) => errorExit(e)
       case Failure(NonFatal(e)) => throw e
     }
     p.optArgs.values.foldLeft(p.posArgs.foldLeft(args)(foldFunc))(foldFunc)
@@ -171,24 +167,21 @@ class Sparse private(
       if (cname == helpName) {
         printHelp()
       }
-      Try(optArgs(cname)) match {
-        case Success(argObj) => argObj.isSwitch match {
+      optArgs.get(cname) match {
+        case Some(argObj) => argObj.isSwitch match {
           // negate the default value
           case true => {
             val switchOn = (!argObj.value.toBoolean).toString
             setVal(argObj, switchOn).parserHelper(etc, lastPosition)
           }
-          case false if !etc.isEmpty && !Value.unapply(etc.head).isEmpty => {
+          case false if etc.nonEmpty && Value.unapply(etc.head).nonEmpty => {
             setVal(argObj, etc.head).parserHelper(etc.drop(1), lastPosition)
           }
           case _ => {
             throw new MissingValueException(s"Missing value for optional argument ${args.head}.")
           }
         }
-        case Failure(e: NoSuchElementException) => {
-          throw new UnknownArgException(s"Unknown optional argument: ${args.head}.", e)
-        }
-        case Failure(NonFatal(e)) => throw e
+        case _ => throw new UnknownArgException(s"Unknown optional argument: ${args.head}.")
       }
     }
     case Nil => {
@@ -203,5 +196,11 @@ class Sparse private(
     val formatter = new Formatter(progName, desc, posArgs, optArgs.values)
     println(formatter.getHelp)
     System.exit(0)
+  }
+
+  private[this] def errorExit(e: Throwable): this.type = {
+    System.err.println(e.getMessage())
+    System.exit(1)
+    this
   }
 }
