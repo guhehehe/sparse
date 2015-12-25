@@ -110,16 +110,16 @@ class Sparse private(
         val argObj = new PositionalArg(position, name, options = options, desc = desc)
         update(posArgs = posArgs :+ argObj)
       }
-      case fullName@OptionalArg(prefixedName) => {
-        validateName(fullName)
+      case prefixedName@OptionalArg(name) => {
+        validateName(prefixedName)
         validateFlag(prefixedFlag)
         val flag = prefixedFlag.stripPrefix("-")
-        val argObj = new OptionalArg(prefixedName, parsedVal, options = options, desc = desc)
+        val argObj = new OptionalArg(name, parsedVal, options = options, desc = desc)
             .setFlag(flag)
         val newCname = if (argObj.flag.nonEmpty) {
-          canonicalName + (flag -> prefixedName)
+          canonicalName + (flag -> name)
         } else canonicalName
-        update(optArgs = optArgs + (prefixedName -> argObj), canonicalName = newCname)
+        update(optArgs = optArgs + (name -> argObj), canonicalName = newCname)
       }
       case unknown => throw new ArgFormatException(s"Can't handle argument: $unknown.")
     }
@@ -127,14 +127,13 @@ class Sparse private(
 
   private def validateName(name: String) = {
     if (!name.startsWith("--")) {
-      throw new ArgFormatException("Optional argument's name should start with --")
+      throw new ArgFormatException("Optional argument's name should start with --.")
     }
   }
 
   private def validateFlag(flag: String) = {
-    if (flag.nonEmpty && (flag.size != 2 || !flag.startsWith("-"))) {
-      throw new ArgFormatException("Short optional argument's name should be - followed by a single"
-          + " character.")
+    if (flag.nonEmpty && !flag.startsWith("-")) {
+      throw new ArgFormatException("Short optional argument's name should be start with -.")
     }
   }
 

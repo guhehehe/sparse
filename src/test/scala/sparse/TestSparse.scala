@@ -93,12 +93,18 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     }
   }
 
-  it should "throw ArgFormatException if `flag` does not start with a single '-'" in {
+  it should "throw ArgFormatException if `prefixedFlag` does not start with a single '-'" in {
     intercept[ArgFormatException] {
       sparse.addArg("--arg", "f")
     }
     intercept[ArgFormatException] {
       sparse.addArg("--arg", "--f")
+    }
+  }
+
+  it should "throw ArgFormatException if flag has more than one character" in {
+    intercept[ArgFormatException] {
+      sparse.addArg("--arg", "-fa")
     }
   }
 
