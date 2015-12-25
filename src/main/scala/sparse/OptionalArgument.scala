@@ -3,13 +3,13 @@ package sparse
 import scala.util.{Success, Try}
 
 private[sparse] object OptionalArg {
-  def unapply(k: String): Option[(String, Boolean)] = Option(k) match {
+  def unapply(k: String): Option[String] = Option(k) match {
     case Some(k) => Option {
       if (k.forall(c => c.isLetterOrDigit || c == '-')) {
         if (k.startsWith("--")) {
-          (k.stripPrefix("--"), false)
+          k.stripPrefix("--")
         } else if (k.startsWith("-")) {
-          (k.stripPrefix("-"), true)
+          k.stripPrefix("-")
         } else null
       } else null
     }
@@ -42,11 +42,10 @@ private[sparse] class OptionalArg(
 
   def setFlag(flag: String): OptionalArg = {
     if (flag.nonEmpty) {
-      flag match {
-        case OptionalArg(_, isFlag) if flag.isEmpty || isFlag => update(flag = flag.stripPrefix("-"))
-        case unknown => throw new ArgFormatException(
-          s"Can't handle flag: $unknown, make sure flag argument is prefixed by a single '-'."
-        )
+      if (flag.size == 1 && flag(0).isLetter) {
+        update(flag = flag.stripPrefix("-"))
+      } else {
+        throw new ArgFormatException("Flag must be one character.")
       }
     } else this
   }

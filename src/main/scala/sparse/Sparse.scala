@@ -91,14 +91,14 @@ class Sparse private(
    * Also, it '''must ''' be prefixed with "-".
    *
    * @param name the name of this argument
-   * @param flag the shorthand representation of this argument
+   * @param prefixedFlag the shorthand representation of this argument with prefix
    * @param value the default value for this argument
    * @param options the options that the $value can be chosen from
    * @return a new [[Sparse]] with this new argument added
    */
   def addArg(
       name: String,
-      flag: String = "",
+      prefixedFlag: String = "",
       value: String = "",
       options: Set[String] = Set.empty,
       desc: String = ""): Sparse = {
@@ -110,14 +110,31 @@ class Sparse private(
         val argObj = new PositionalArg(position, name, options = options, desc = desc)
         update(posArgs = posArgs :+ argObj)
       }
-      case OptionalArg(name, isFlag) if !isFlag => {
-        val argObj = new OptionalArg(name, parsedVal, options = options, desc = desc).setFlag(flag)
+      case fullName@OptionalArg(prefixedName) => {
+        validateName(fullName)
+        validateFlag(prefixedFlag)
+        val flag = prefixedFlag.stripPrefix("-")
+        val argObj = new OptionalArg(prefixedName, parsedVal, options = options, desc = desc)
+            .setFlag(flag)
         val newCname = if (argObj.flag.nonEmpty) {
-          canonicalName + (flag.stripPrefix("-") -> name)
+          canonicalName + (flag -> prefixedName)
         } else canonicalName
-        update(optArgs = optArgs + (name -> argObj), canonicalName = newCname)
+        update(optArgs = optArgs + (prefixedName -> argObj), canonicalName = newCname)
       }
       case unknown => throw new ArgFormatException(s"Can't handle argument: $unknown.")
+    }
+  }
+
+  private def validateName(name: String) = {
+    if (!name.startsWith("--")) {
+      throw new ArgFormatException("Optional argument's name should start with --")
+    }
+  }
+
+  private def validateFlag(flag: String) = {
+    if (flag.nonEmpty && (flag.size != 2 || !flag.startsWith("-"))) {
+      throw new ArgFormatException("Short optional argument's name should be - followed by a single"
+          + " character.")
     }
   }
 
@@ -159,7 +176,7 @@ class Sparse private(
       setVal(newPosition, value).parserHelper(etc, newPosition, true)
     }
     // deal with optional arguments
-    case OptionalArg(arg, _) :: etc if !cutoff => {
+    case OptionalArg(arg) :: etc if !cutoff => {
       val cname = canonicalName.get(arg) match {
         case Some(name) => name
         case _ => arg
