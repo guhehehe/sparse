@@ -1,8 +1,6 @@
 package sparse
 
-import org.scalatest.BeforeAndAfter
-
-class TestSparse extends UnitSpec with BeforeAndAfter {
+class TestSparse extends UnitSpec {
   val sparse = Sparse()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -331,5 +329,28 @@ class TestSparse extends UnitSpec with BeforeAndAfter {
     intercept[UnknownArgException] {
       sparse.addArg("arg", options = Set("opt1", "opt2")).parserHelper("opt3" :: Nil)
     }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Test Sparse#validateName
+  /////////////////////////////////////////////////////////////////////////////
+
+  "Sparse#validateName" should "work" in {
+    intercept[ArgFormatException] {
+      sparse.validateName("abc")
+    }
+    sparse.validateName("--abc")
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Test Sparse#validateFlag
+  /////////////////////////////////////////////////////////////////////////////
+
+  "Sparse#validateFlag" should "work" in {
+    intercept[ArgFormatException] {
+      sparse.validateFlag("a")
+    }
+    sparse.validateFlag("-a")
+    sparse.validateFlag("")
   }
 }

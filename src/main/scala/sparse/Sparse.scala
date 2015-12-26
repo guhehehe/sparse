@@ -125,13 +125,15 @@ class Sparse private(
     }
   }
 
-  private def validateName(name: String) = {
+  /** validating optional argument input for [[addArg]] */
+  private[sparse] def validateName(name: String) = {
     if (!name.startsWith("--")) {
       throw new ArgFormatException("Optional argument's name should start with --.")
     }
   }
 
-  private def validateFlag(flag: String) = {
+  /** validating flag argument input for [[addArg]] */
+  private[sparse] def validateFlag(flag: String) = {
     if (flag.nonEmpty && !flag.startsWith("-")) {
       throw new ArgFormatException("Short optional argument's name should be start with -.")
     }
